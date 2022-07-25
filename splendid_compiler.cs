@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -169,6 +169,10 @@ namespace Splendid__
             catch
             {
 
+            }
+            if(vars.ContainsKey(rh))
+            {
+                return vars[rh];
             }
             return new VarType();
         }
