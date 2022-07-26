@@ -236,6 +236,54 @@ namespace Splendid__
             }
         }
         Dictionary<string, VarType> heapVars = new Dictionary<string, VarType>();
+        void ParseThingsAndSigns(string s, List<string> things, List<string> signs)
+        {
+            string curThing = "", curSign = "";
+            for(int i = 0; i < s.Length;)
+            {
+                if (s[i] == '(')
+                {
+                    if(curSign != "")
+                    {
+                        signs.Add(curSign);
+                        curSign = "";
+                    }
+                    string t = FindBracketing(s.Substring(i), '(', ')');
+                    i += t.Length;
+                    curThing += t;
+                }
+                if (i >= s.Length) break;
+                if (CharIsVarName(s[i]))
+                {
+                    if (curSign != "")
+                    {
+                        signs.Add(curSign);
+                        curSign = "";
+                    }
+                    string t = GetFirstWord(s.Substring(i));
+                    i += t.Length;
+                    curThing += t;
+                }
+                if (i >= s.Length) break;
+                if (s[i] == ' ' || s[i] == '\t')
+                {
+                    i++; continue;
+                }
+                if (CharIsSign(s[i]))
+                {
+                    if (curThing != "")
+                    {
+                        things.Add(curThing);
+                        curThing = "";
+                    }
+                    string t = GetFirstSign(s.Substring(i));
+                    i += t.Length;
+                    curSign += t;
+                }
+            }
+            if (curThing != "") things.Add(curThing);
+            if (curSign != "") signs.Add(curSign);
+        }
         VarType ParseRH(string rh, Dictionary<string, VarType> vars)
         {
             if (rh[0] == '\"' && rh.Last() == '\"')
@@ -255,7 +303,24 @@ namespace Splendid__
             {
                 return vars[rh];
             }
-
+            //string firstWord = GetFirstWord(rh);
+            //string s2 = PreTrimmed(rh.Substring(firstWord.Length));
+            List<string> things = new List<string>();
+            List<string> signs = new List<string>();
+            ParseThingsAndSigns(rh, things, signs);
+            //MessageBox.Show(things[0]);
+            if (things.Count == 0) return new VarType();
+            VarType ret = ParseRH(things[0], vars);
+            for(int i = 0; i < signs.Count; i++)
+            {
+                if (things.Count <= i + 1) break;
+                VarType o = ParseRH(things[i + 1], vars);
+                if (signs[i] == "+")
+                {
+                    ret.Plus(o);
+                }
+            }
+            return ret;
             return new VarType();
         }
         void PushOutput(string s)
@@ -371,6 +436,15 @@ namespace Splendid__
                     i = FindEndHandleFromBegin(i) + 1;
                 }
 
+            }else if(firstWord == "while")
+            {
+                int end = FindEndHandleFromBegin(hi + 1);
+                string param = FindBracketing(s2, '(', ')');
+                param = param.Substring(1, param.Length - 2);
+                while(ParseRH(param, vars).AsBool())
+                {
+                    RunAt(hi + 1, vars);
+                }
             }
             string firstSign = GetFirstSign(s2);
             string s3 = PreTrimmed(s2.Substring(firstSign.Length));
