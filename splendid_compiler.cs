@@ -531,6 +531,7 @@ namespace Splendid__
                     }
                     i = FindEndHandleFromBegin(i) + 1;
                 }
+                //return end + 1;
 
             }else if(firstWord == "while")
             {
@@ -541,6 +542,7 @@ namespace Splendid__
                 {
                     RunAt(hi + 1, vars);
                 }
+                return end + 1;
             }
             string firstSign = GetFirstSign(s2);
             string s3 = PreTrimmed(s2.Substring(firstSign.Length));
