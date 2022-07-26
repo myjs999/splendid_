@@ -224,6 +224,23 @@ namespace Splendid__
                 if (typ == 2) return s == o.s;
                 return false;
             }
+            public bool SmallerThan(VarType o)
+            {
+                //if (typ != o.typ) return false;
+                if (typ == 1 && o.typ == 1) return a < o.a;
+                if (typ == 2 && o.typ == 2) return s.CompareTo(o.s) == -1;
+                return false;
+            }
+            public bool Logic(VarType o, string sign)
+            {
+                if (sign == "==") return EqualsTo(o);
+                if (sign == "!=") return !EqualsTo(o);
+                if (sign == "<") return SmallerThan(o);
+                if (sign == ">") return !SmallerThan(o) && !EqualsTo(o);
+                if (sign == "<=") return SmallerThan(o) || EqualsTo(o);
+                if (sign == ">=") return !SmallerThan(o);
+                return false;
+            }
             public void Plus(VarType o)
             {
                 if(typ == 1)
@@ -337,6 +354,10 @@ namespace Splendid__
             if (curThing != "") things.Add(curThing);
             if (curSign != "") signs.Add(curSign);
         }
+        bool StringIsLogicSign(string s)
+        {
+            return s == "==" || s == "<" || s == ">" || s == "<=" || s == ">=" || s == "!=";
+        }
         VarType ParseRH(string rh, Dictionary<string, VarType> vars)
         {
             if (rh == "") return new VarType();
@@ -385,12 +406,14 @@ namespace Splendid__
                 if (signs[i] == "+")
                 {
                     ret.Plus(o);
-                }else if (signs[i] == "-")
+                }
+                else if (signs[i] == "-")
                 {
                     ret.Minus(o);
-                }else if (signs[i] == "==")
+                }
+                else if (StringIsLogicSign(signs[i]))
                 {
-                    ret = new VarType(ret.EqualsTo(o));
+                    ret = new VarType(ret.Logic(o, signs[i]));
                 }
             }
             return ret;
