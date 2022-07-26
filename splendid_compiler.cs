@@ -12,7 +12,7 @@ namespace Splendid__
         {
 
         }
-        public string FindBracketing(string s, char bra, char ket)
+        public string FindBracketing(string s, char bra, char ket, bool considerInString=true)
         {
             string ret = "";
             char inString = ' ';
@@ -38,13 +38,24 @@ namespace Splendid__
                 }
                 else
                 {
-                    if (c == bra) ++bed;
-                    if (bed > 0)
+                    if (c == '\"' && considerInString)
                     {
-                        ret += c;
+                        inString = c;
                     }
-                    if (c == ket) --bed;
-                    if (bed == 0 && ret != "") return ret;
+                    else if (c == '\'' && considerInString)
+                    {
+                        inString = c;
+                    }
+                    else
+                    {
+                        if (c == bra) ++bed;
+                        if (bed > 0)
+                        {
+                            ret += c;
+                        }
+                        if (c == ket) --bed;
+                        if (bed == 0 && ret != "") return ret;
+                    }
                 }
             }
             return ret;
@@ -183,6 +194,11 @@ namespace Splendid__
                 typ = 2;
                 this.s = s;
             }
+            public VarType(bool b)
+            {
+                typ = 1;
+                this.a = b ? 1 : 0;
+            }
             public VarType()
             {
 
@@ -234,6 +250,19 @@ namespace Splendid__
                     }
                 }
             }
+            public VarType NegativeOne()
+            {
+                if (typ == 1) return new VarType(-a);
+                if (typ == 2) return new VarType(new String(s.ToCharArray().Reverse().ToArray()));
+                return this;
+            }
+            public void Minus(VarType o)
+            {
+                if(typ == 1 && o.typ == 1)
+                {
+                    a -= o.a;
+                }
+            }
         }
         Dictionary<string, VarType> heapVars = new Dictionary<string, VarType>();
         void ParseThingsAndSigns(string s, List<string> things, List<string> signs)
@@ -249,6 +278,29 @@ namespace Splendid__
                         curSign = "";
                     }
                     string t = FindBracketing(s.Substring(i), '(', ')');
+                    i += t.Length;
+                    curThing += t;
+                }
+                if (i >= s.Length) break;
+                if (s[i] == '\"')
+                {
+                    if (curSign != "")
+                    {
+                        signs.Add(curSign);
+                        curSign = "";
+                    }
+                    if (curThing != "")
+                    {
+                        things.Add(curThing);
+                        curThing = "";
+                    }
+                    int j = i + 1;
+                    while (s[j] != '\"')
+                    {
+                        //MessageBox.Show(j.ToString());
+                        ++j;
+                    }
+                    string t = s.Substring(i, j - i+1);
                     i += t.Length;
                     curThing += t;
                 }
@@ -281,14 +333,27 @@ namespace Splendid__
                     curSign += t;
                 }
             }
+            //MessageBox.Show("ok");
             if (curThing != "") things.Add(curThing);
             if (curSign != "") signs.Add(curSign);
         }
         VarType ParseRH(string rh, Dictionary<string, VarType> vars)
         {
+            if (rh == "") return new VarType();
+            while (rh[0] == '(' && rh.Last() == ')') rh = rh.Substring(1, rh.Length - 2);
             if (rh[0] == '\"' && rh.Last() == '\"')
             {
-                return new VarType(rh.Substring(1, rh.Length - 2));
+                bool isString = true;
+                for(int i = 1; i < rh.Length-1; i++)
+                {
+                    if(rh[i] == '\\')
+                    {
+                        i++;
+                        continue;
+                    }
+                    if (rh[i] == '\"') isString = false;
+                }
+                if(isString) return new VarType(rh.Substring(1, rh.Length - 2));
             }
             try
             {
@@ -303,6 +368,7 @@ namespace Splendid__
             {
                 return vars[rh];
             }
+            //if (rh[0] == '(' && rh.Last() == ')') return ParseRH
             //string firstWord = GetFirstWord(rh);
             //string s2 = PreTrimmed(rh.Substring(firstWord.Length));
             List<string> things = new List<string>();
@@ -310,6 +376,7 @@ namespace Splendid__
             ParseThingsAndSigns(rh, things, signs);
             //MessageBox.Show(things[0]);
             if (things.Count == 0) return new VarType();
+            if (things.Count == 1 && signs.Count == 0) return ParseRH(things[0], vars);
             VarType ret = ParseRH(things[0], vars);
             for(int i = 0; i < signs.Count; i++)
             {
@@ -318,6 +385,12 @@ namespace Splendid__
                 if (signs[i] == "+")
                 {
                     ret.Plus(o);
+                }else if (signs[i] == "-")
+                {
+                    ret.Minus(o);
+                }else if (signs[i] == "==")
+                {
+                    ret = new VarType(ret.EqualsTo(o));
                 }
             }
             return ret;
@@ -457,6 +530,13 @@ namespace Splendid__
                     vars[firstWord].Plus(ParseRH(s3, vars));
                 else
                     vars[firstWord] = ParseRH(s3, vars);
+            }else if(firstSign == "-=")
+            {
+                if (vars.ContainsKey(firstWord))
+                    vars[firstWord].Minus(ParseRH(s3, vars));
+                else
+                    vars[firstWord] = ParseRH(s3, vars).NegativeOne();
+                
             }
             return hi + 1;
         }
