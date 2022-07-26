@@ -200,6 +200,14 @@ namespace Splendid__
                 if (typ == 2) return s != "";
                 return false;
             }
+            public bool EqualsTo(VarType o)
+            {
+                if (typ != o.typ) return false;
+                if (typ == 0) return true;
+                if (typ == 1) return a == o.a;
+                if (typ == 2) return s == o.s;
+                return false;
+            }
             public void Plus(VarType o)
             {
                 if(typ == 1)
@@ -259,12 +267,22 @@ namespace Splendid__
             int bed = 0;
             for (; ; )
             {
+                if (handles[start].Last() == ':')
+                {
+                    ++start;
+                    continue;
+                }
                 if (handles[start].Last() == '{') ++bed;
                 if (handles[start].Last() == '}') --bed;
                 if (bed == 0) return start;
                 ++start;
                 if (start >= handles.Count) return -1;
             }
+        }
+        string GetHandleByIndex(int ind)
+        {
+            if (ind < 0 || ind >= handles.Count) return "";
+            return handles[ind];
         }
         class Stringwm // string with mark
         {
@@ -305,16 +323,54 @@ namespace Splendid__
             {
                 string param = FindBracketing(s2, '(', ')');
                 bool execute = ParseRH(param.Substring(1, param.Length - 2), vars).AsBool();
+                int end = FindEndHandleFromBegin(hi + 1);
                 if (execute)
                 {
+                    //while(end+1 <= handles.Count && handles[end+1] == "else:")
+                    //{
+                    //    end = FindEndHandleFromBegin(end+2);
+                    //}
                     return hi + 1;
                     //PushOutput("yesdo");
                 }
                 else
                 {
-                    return FindEndHandleFromBegin(hi + 1)+1;
+                    return end+1;
                     //PushOutput("nodo");
                 }
+            }else if(firstWord == "sw")
+            {
+                string param = FindBracketing(s2, '(', ')');
+                VarType varparam = ParseRH(param.Substring(1, param.Length-2), vars);
+                int end;
+                for (int i = hi+1; ;)
+                {
+                    string cch = GetHandleByIndex(i);
+                    if (cch == "end;") {
+                        end = i;
+                        break;
+                    }
+                    i = FindEndHandleFromBegin(i) + 1;
+                }
+                for (int i = hi + 1; ;)
+                {
+                    string cch = GetHandleByIndex(i);
+                    if (cch == "end;")
+                    {
+                        return end + 1;
+                    }
+                    if(cch == "else:")
+                    {
+                        RunAt(i + 1, vars);
+                        return end + 1;
+                    }
+                    if(varparam.EqualsTo(ParseRH(cch.Substring(0, cch.Length - 1),vars) )){
+                        RunAt(i + 1, vars);
+                        return end + 1;
+                    }
+                    i = FindEndHandleFromBegin(i) + 1;
+                }
+
             }
             string firstSign = GetFirstSign(s2);
             string s3 = PreTrimmed(s2.Substring(firstSign.Length));
@@ -342,7 +398,14 @@ namespace Splendid__
             int hi = 0;
             for(; ;)
             {
-                hi = RunAt(hi, heapVars);
+                try
+                {
+                    hi = RunAt(hi, heapVars);
+                }
+                catch
+                {
+                    PushOutput("--------\r\n[ERROR]");
+                }
                 if (hi >= handles.Count || hi < 0) break;
             }
             //for (int i = 0; i < handles.Count; i++)
